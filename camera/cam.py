@@ -12,7 +12,7 @@ import time
 import cv2
 import numpy as np
 
-import mapping
+import slam_lib.mapping as mapping
 
 
 class PinHoleCamera:

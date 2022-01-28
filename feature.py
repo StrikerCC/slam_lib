@@ -13,8 +13,8 @@ import cv2
 import numpy as np
 from scipy.spatial.kdtree import KDTree
 
-import read
-import vis
+import slam_lib.geometry
+import slam_lib.vis as vis
 
 
 wait_key = 0
@@ -189,7 +189,7 @@ def compute_fpf(img, start_points, end_points, num_neighbor):
             feature_dis_start[index_hair, i_nn] = np.linalg.norm(start_points[index_hair] - start_points[index_nn])   # distance
             feature_dis_end[index_hair, i_nn] = np.linalg.norm(end_points[index_hair] - end_points[index_nn])   # distance
 
-            feature_orientation_neighbor_line[index_hair, i_nn] = utils.angle_between_2_vector(hair_line[index_hair], hair_line[index_nn])      # orientation of line segment from hair start to neighbor hair start in local frame
+            feature_orientation_neighbor_line[index_hair, i_nn] = slam_lib.geometry.angle_between_2_vector(hair_line[index_hair], hair_line[index_nn])      # orientation of line segment from hair start to neighbor hair start in local frame
             # feature_orientation_neighbor_line[index_hair, i_nn] = np.random.random(1)
 
         # reorganize the nn list, start from point heading close to first axis

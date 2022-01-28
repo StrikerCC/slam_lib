@@ -10,9 +10,9 @@ import time
 import cv2
 import numpy as np
 import json
-from camera.cam import PinHoleCamera, BiCamera
-import feature as feature
-import dataset as dataset
+from slam_lib.camera.cam import PinHoleCamera, BiCamera
+import slam_lib.feature as feature
+import slam_lib.dataset as dataset
 
 
 def stereo_calibrate(square_size, checkboard_size, left_img_paths, right_img_paths, binocular=None, file_path_2_save=None):
