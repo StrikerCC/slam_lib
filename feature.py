@@ -218,67 +218,67 @@ def compute_fpf(img, start_points, end_points, num_neighbor):
 
 
 def main():
-    time_0 = time.time()
-    vis_flag = True
-    num_nn = 5
-    img_l, data_l = read.format_data(img_path='/home/cheng/proj/3d/hair_host/bin/left.jpg',
-                                     data_json_path='/home/cheng/proj/3d/hair_host/bin/left_hair_info.json')
-    img_l_copy = copy.deepcopy(img_l)
-    vis.draw_lines(img_l_copy, data_l, 'l')
-
-    img_r, data_r = read.format_data(img_path='/home/cheng/proj/3d/hair_host/bin/right.jpg',
-                                     data_json_path='/home/cheng/proj/3d/hair_host/bin/right_hair_info.json')
-    img_r_copy = copy.deepcopy(img_r)
-    vis.draw_lines(img_r_copy, data_r, 'r')
-
-    start_points_l, end_points_l = read.dic_2_nparray(img_l, data_l)
-    start_points_r, end_points_r = read.dic_2_nparray(img_r, data_r)
+    # time_0 = time.time()
+    # vis_flag = True
+    # num_nn = 5
+    # img_l, data_l = read.format_data(img_path='/home/cheng/proj/3d/hair_host/bin/left.jpg',
+    #                                  data_json_path='/home/cheng/proj/3d/hair_host/bin/left_hair_info.json')
+    # img_l_copy = copy.deepcopy(img_l)
+    # vis.draw_lines(img_l_copy, data_l, 'l')
+    #
+    # img_r, data_r = read.format_data(img_path='/home/cheng/proj/3d/hair_host/bin/right.jpg',
+    #                                  data_json_path='/home/cheng/proj/3d/hair_host/bin/right_hair_info.json')
+    # img_r_copy = copy.deepcopy(img_r)
+    # vis.draw_lines(img_r_copy, data_r, 'r')
+    #
+    # start_points_l, end_points_l = read.dic_2_nparray(img_l, data_l)
+    # start_points_r, end_points_r = read.dic_2_nparray(img_r, data_r)
+    # # cv2.namedWindow('line', cv2.WINDOW_NORMAL)
+    #
+    #
+    # # siftfeatures = cv2.xfeatures2d.SIFT_create()
+    # # keypoints = siftfeatures.detect(img_l_copy, None)
+    # # img_l_copy = cv2.drawKeypoints(img_l_copy, keypoints=keypoints, outImage=0, color=(0, 255, 0))
+    #
+    #
+    # img_r, start_points_r, end_points_r = utils.tsfm(img_l, start_points_l, end_points_l)
+    #
+    # feature_1 = compute_fpf(img_l, start_points_l, end_points_l, num_neighbor=num_nn)
+    # feature_2 = compute_fpf(img_r, start_points_r, end_points_r, num_neighbor=num_nn)
+    #
+    # '''randomize data'''
+    # mask = np.arange(0, len(feature_2)).astype(int)
+    # # np.random.shuffle(mask)
+    # feature_2 = feature_2[mask]
+    # '''for each hair, locate it nn in new feature space'''
+    # num_hair = len(feature_1)
+    # num_success = 0
+    # tree_feature_2 = KDTree(feature_2)
+    # num_neighbor_feature = 1
+    #
+    # img_feature = np.concatenate([img_l, img_r], axis=1)
+    # for i_hair in range(num_hair):
+    #     hair_feature = feature_1[i_hair]
+    #     _, nn_index_list = tree_feature_2.query(hair_feature, k=num_neighbor_feature + 1)
+    #     if mask[nn_index_list[0]] == i_hair:
+    #         num_success += 1
+    #     if vis_flag:
+    #         print(i_hair)
+    #         # for index_nn in nn_index_list:
+    #         index_match = mask[nn_index_list[0]]
+    #         print('     ', index_match)
+    #         start_point_r = start_points_r[index_match].astype(int)
+    #         start_point_r += np.asarray([img_l.shape[1], 0])
+    #         cv2.line(img_feature, start_points_l[i_hair], start_point_r, color=(0, 0, 155), thickness=2)
+    #
     # cv2.namedWindow('line', cv2.WINDOW_NORMAL)
-
-
-    # siftfeatures = cv2.xfeatures2d.SIFT_create()
-    # keypoints = siftfeatures.detect(img_l_copy, None)
-    # img_l_copy = cv2.drawKeypoints(img_l_copy, keypoints=keypoints, outImage=0, color=(0, 255, 0))
-
-
-    img_r, start_points_r, end_points_r = utils.tsfm(img_l, start_points_l, end_points_l)
-
-    feature_1 = compute_fpf(img_l, start_points_l, end_points_l, num_neighbor=num_nn)
-    feature_2 = compute_fpf(img_r, start_points_r, end_points_r, num_neighbor=num_nn)
-
-    '''randomize data'''
-    mask = np.arange(0, len(feature_2)).astype(int)
-    # np.random.shuffle(mask)
-    feature_2 = feature_2[mask]
-    '''for each hair, locate it nn in new feature space'''
-    num_hair = len(feature_1)
-    num_success = 0
-    tree_feature_2 = KDTree(feature_2)
-    num_neighbor_feature = 1
-
-    img_feature = np.concatenate([img_l, img_r], axis=1)
-    for i_hair in range(num_hair):
-        hair_feature = feature_1[i_hair]
-        _, nn_index_list = tree_feature_2.query(hair_feature, k=num_neighbor_feature + 1)
-        if mask[nn_index_list[0]] == i_hair:
-            num_success += 1
-        if vis_flag:
-            print(i_hair)
-            # for index_nn in nn_index_list:
-            index_match = mask[nn_index_list[0]]
-            print('     ', index_match)
-            start_point_r = start_points_r[index_match].astype(int)
-            start_point_r += np.asarray([img_l.shape[1], 0])
-            cv2.line(img_feature, start_points_l[i_hair], start_point_r, color=(0, 0, 155), thickness=2)
-
-    cv2.namedWindow('line', cv2.WINDOW_NORMAL)
-    cv2.imshow('line', img_feature)
-    cv2.waitKey(0)
-        # cv2.destroyAllWindows()
-
-    '''out'''
-    print('success rate', num_success/num_hair, 'time', time.time() - time_0)
-
+    # cv2.imshow('line', img_feature)
+    # cv2.waitKey(0)
+    #     # cv2.destroyAllWindows()
+    #
+    # '''out'''
+    # print('success rate', num_success/num_hair, 'time', time.time() - time_0)
+    return
 
 if __name__ == '__main__':
     main()
