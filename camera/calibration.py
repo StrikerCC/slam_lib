@@ -51,7 +51,7 @@ def stereo_calibrate(square_size, checkboard_size, left_img_paths, right_img_pat
         img_left, img_right = cv2.imread(left_img_name), cv2.imread(right_img_name)
         img_left, img_right = cv2.cvtColor(img_left, cv2.COLOR_BGR2GRAY), cv2.cvtColor(img_right, cv2.COLOR_BGR2GRAY)
         pts_2d_left.append(feature.get_checkboard_corners(img_left, checkboard_size))
-        pts_2d_right.append(feature.get_checkboard_corners(img_right, checkboard_size))
+        pts_2d_right.append(feature.get_checkboard_corners(img_right, checkboard_size, flag_vis=True))
 
         if i == 0:
             img_size = (img_left.shape[1], img_left.shape[0])

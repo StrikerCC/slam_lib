@@ -31,16 +31,26 @@ def draw_matches(img1, pts1, img2, pts2):
     if pts2.shape[1] != 2:
         pts2 = pts2.reshape(-1, 2)
 
+    # compute mapp from two image to new synthesis img
+    width_synthesis = img1.shape[1] + img2.shape[1]
+    height_synthesis = max(img1.shape[0], img2.shape[0])
+    img_synthesis = np.zeros((height_synthesis, width_synthesis, 3))
+
+    img_synthesis[0:img1.shape[0], 0:img1.shape[1], :] = img1
+    img_synthesis[0:img2.shape[0], img1.shape[1]:, :] = img2
+    # img_synthesis = img_synthesis.astype(int)
+    img_synthesis = img_synthesis / 255
+
     pts1, pts2 = pts1.astype(int), pts2.astype(int)
-    img = np.copy(np.concatenate([img1, img2], axis=1))
     pts2[:, 0] = pts2[:, 0] + img1.shape[1]
     for i in range(len(pts1)):
         pt1, pt2 = pts1[i], pts2[i]
-        color = np.random.random(3) * 255
-        img = cv2.circle(img, pt1, radius=15, color=color, thickness=5)
-        img = cv2.circle(img, pt2, radius=15, color=color, thickness=5)
-        img = cv2.line(img, pt1, pt2, color=color, thickness=2)
-    return img
+        color = np.random.random(3)
+        # color = color.astype(int)
+        img_synthesis = cv2.circle(img_synthesis, pt1, radius=15, color=color, thickness=5)
+        img_synthesis = cv2.circle(img_synthesis, pt2, radius=15, color=color, thickness=5)
+        img_synthesis = cv2.line(img_synthesis, pt1, pt2, color=color, thickness=2)
+    return img_synthesis
 
 
 def main():
