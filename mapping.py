@@ -42,6 +42,16 @@ def transform_pt_3d(tf, pts):
         raise ValueError('input points shape invalid, expect (n, 3) or (3, n), but get ' + str(pts.shape))
 
 
+def transform_pt_2d(tf, pts):
+    assert tf.shape == (3, 3)
+    if pts.shape[0] == 2:
+        return np.matmul(tf[:2, :2], pts) + tf[:2, -1:]
+    elif pts.shape[1] == 2:
+        return np.matmul(pts, tf[:2, :2].T) + tf[:2, -1:].T
+    else:
+        raise ValueError('input points shape invalid, expect (n, 3) or (3, n), but get ' + str(pts.shape))
+
+
 def radius(pts_2d, offset=None):
     assert pts_2d.shape[1] == 2
     if offset:

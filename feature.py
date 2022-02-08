@@ -16,7 +16,6 @@ from scipy.spatial.kdtree import KDTree
 import slam_lib.geometry
 import slam_lib.vis as vis
 
-
 wait_key = 0
 
 
@@ -60,22 +59,48 @@ def sift_features(img, flag_debug=False):
 def match_pts(img1, img2, flag_debug=False):
     if img1 is None or img2 is None:
         return None
-    kp1, des1 = sift_features(img1, flag_debug)
-    kp2, des2 = sift_features(img2, flag_debug)
+
+    shrink = img1.shape[0] / img2.shape[0]
+    img1_sub, img2_sub = img1, img2
+    if shrink > 1:
+        img1_sub = cv2.resize(img1_sub, (int(img1.shape[1] / shrink), int(img1.shape[0] / shrink)))
+    else:
+
+        img2_sub = cv2.resize(img2_sub, (int(img2.shape[1] / (1/shrink)), int(img2.shape[0] / (1/shrink))))
+
+    kp1, des1 = sift_features(img1_sub, flag_debug)
+    kp2, des2 = sift_features(img2_sub, flag_debug)
+
+    # pts1 = np.float32([kp.pt for kp in kp1]).reshape(-1, 2) * shrink
+    # pts2 = np.float32([kp.pt for kp in kp2]).reshape(-1, 2) * shrink
+
     bf = cv2.BFMatcher_create()
     matches = bf.knnMatch(des1, des2, k=2)
     good_matches = [first for first, second in matches if first.distance < 0.85 * second.distance]
 
+    pts1 = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+    pts2 = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+
+    if shrink > 1:
+        pts1 = pts1 * shrink
+    else:
+        pts2 = pts2 / shrink
+
+    # if flag_debug:
+    #     print('Get ', len(good_matches), ' good matches')
+    #     img3 = cv2.drawMatches(img1, kp1, img2, kp2, good_matches, None, flags=2)
+    #     cv2.namedWindow('match', cv2.WINDOW_NORMAL)
+    #     cv2.imshow('match', img3)
+    #     cv2.waitKey(wait_key)
+
     if flag_debug:
-        print('Get ', len(good_matches), ' good matches')
-        img3 = cv2.drawMatches(img1, kp1, img2, kp2, good_matches, None, flags=2)
+        print('Get ', len(pts1), ' good matches')
+        img3 = vis.draw_matches(img1, pts1, img2, pts2)
         cv2.namedWindow('match', cv2.WINDOW_NORMAL)
         cv2.imshow('match', img3)
         cv2.waitKey(wait_key)
 
-    pts1 = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-    pts2 = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-    return pts1, pts2
+    return pts1, des1, pts2, des2
 
 
 # def match_filter_pts_pair(kp1, des1, kp2, des2):
@@ -87,10 +112,10 @@ def match_filter_pts_pair(pts1, des1, pts2, des2):
     good_matches = [first for first, second in matches if first.distance < 0.85 * second.distance]
     index_match = np.asarray([[m.queryIdx, m.trainIdx] for m in good_matches])
 
-    pts1 = pts1[index_match[:, 0].tolist()]     # queryIdx
+    pts1 = pts1[index_match[:, 0].tolist()]  # queryIdx
     des1 = des1[index_match[:, 0]]
 
-    pts2 = pts2[index_match[:, 1].tolist()]     # trainIdx
+    pts2 = pts2[index_match[:, 1].tolist()]  # trainIdx
     des2 = des2[index_match[:, 1]]
 
     print('feature value ambiguity', len(good_matches), '/', len(matches), 'points left')
@@ -112,7 +137,9 @@ def match_filter_pts_pair(pts1, des1, pts2, des2):
     good_matches = [m for m in good_matches if m.queryIdx in index_match_set]
 
     print('epi-polar geometry ransac', len(good_matches), '/', len(matches), 'points left, epi-polar rms',
-          np.mean(np.sum(np.matmul(np.hstack([pts1, np.ones((len(pts1), 1))]), F)*np.hstack([pts2, np.ones((len(pts1), 1))]), axis=1)))
+          np.mean(np.sum(
+              np.matmul(np.hstack([pts1, np.ones((len(pts1), 1))]), F) * np.hstack([pts2, np.ones((len(pts1), 1))]),
+              axis=1)))
 
     return pts1, des1, pts2, des2
 
@@ -121,7 +148,7 @@ def get_sift_and_pts(img1, img2, flag_debug=False):
     if img1 is None or img2 is None:
         return None
 
-    shrink = 2.0
+    shrink = 1.0
     img1_sub = cv2.resize(img1, (int(img1.shape[1] / shrink), int(img1.shape[0] / shrink)))
     img2_sub = cv2.resize(img2, (int(img2.shape[1] / shrink), int(img2.shape[0] / shrink)))
 
@@ -182,14 +209,18 @@ def compute_fpf(img, start_points, end_points, num_neighbor):
 
     for index_hair in range(num_hair):
         hair_point = start_points[index_hair]
-        _, nn_index_list = tree_start.query(hair_point, k=num_neighbor+1)
-        nn_index_list = nn_index_list[1:]   # get rid of point itself
+        _, nn_index_list = tree_start.query(hair_point, k=num_neighbor + 1)
+        nn_index_list = nn_index_list[1:]  # get rid of point itself
 
         for i_nn, index_nn in enumerate(nn_index_list):
-            feature_dis_start[index_hair, i_nn] = np.linalg.norm(start_points[index_hair] - start_points[index_nn])   # distance
-            feature_dis_end[index_hair, i_nn] = np.linalg.norm(end_points[index_hair] - end_points[index_nn])   # distance
+            feature_dis_start[index_hair, i_nn] = np.linalg.norm(
+                start_points[index_hair] - start_points[index_nn])  # distance
+            feature_dis_end[index_hair, i_nn] = np.linalg.norm(
+                end_points[index_hair] - end_points[index_nn])  # distance
 
-            feature_orientation_neighbor_line[index_hair, i_nn] = slam_lib.geometry.angle_between_2_vector(hair_line[index_hair], hair_line[index_nn])      # orientation of line segment from hair start to neighbor hair start in local frame
+            feature_orientation_neighbor_line[index_hair, i_nn] = slam_lib.geometry.angle_between_2_vector(
+                hair_line[index_hair], hair_line[
+                    index_nn])  # orientation of line segment from hair start to neighbor hair start in local frame
             # feature_orientation_neighbor_line[index_hair, i_nn] = np.random.random(1)
 
         # reorganize the nn list, start from point heading close to first axis
@@ -200,12 +231,13 @@ def compute_fpf(img, start_points, end_points, num_neighbor):
         feature_orientation_neighbor_line[index_hair] = feature_orientation_neighbor_line[index_hair][mask_sorted]
         feature_orientation_neighbor_hair[index_hair] = feature_orientation_neighbor_hair[index_hair][mask_sorted]
 
-    feature_dis_start /= np.expand_dims(np.sum(feature_dis_start, axis=1), axis=-1)                 # normalize distance
+    feature_dis_start /= np.expand_dims(np.sum(feature_dis_start, axis=1), axis=-1)  # normalize distance
     feature_dis_end /= np.expand_dims(np.sum(feature_dis_end, axis=1), axis=-1)
     # feature_dis_start *= np.pi
     # feature_dis_end *= np.pi
 
-    feature_orientation_neighbor_line = np.arctan(feature_orientation_neighbor_line)    # orientation of line segment from hair start to neighbor hair start in local frame
+    feature_orientation_neighbor_line = np.arctan(
+        feature_orientation_neighbor_line)  # orientation of line segment from hair start to neighbor hair start in local frame
     # feature_orientation_neighbor_line /= 2 * np.pi
     # feature_orientation_neighbor_line += 0.5
 
@@ -279,6 +311,7 @@ def main():
     # '''out'''
     # print('success rate', num_success/num_hair, 'time', time.time() - time_0)
     return
+
 
 if __name__ == '__main__':
     main()

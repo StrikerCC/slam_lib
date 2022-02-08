@@ -178,11 +178,17 @@ class BiCamera:
         pts /= homg_pt[3, :]
         return pts.T
 
-    def transform_raw_pixel_to_world_coordiante(self, pts_2d_left, pts_2d_right):
+    def correspondence_to_3d_in_left_rectify(self, pts_2d_left, pts_2d_right):
         pts_2d_left, pts_2d_right = pts_2d_left.reshape(-1, 2), pts_2d_right.reshape(-1, 2)
         pts_2d_left = self.cam_left.undistort_rectify_pts(pts_2d_left)
         pts_2d_right = self.cam_right.undistort_rectify_pts(pts_2d_right)
         return self.transform_rectify_pixel_to_world_coordiante(pts_2d_left, pts_2d_right)
+
+    def correspondence_to_3d_in_left(self, pts_2d_left, pts_2d_right):
+        pts_3d_in_left_rectify = self.correspondence_to_3d_in_left_rectify(pts_2d_left, pts_2d_right)
+        tf_left_2_left_rectify = mapping.rt_2_tf(self.cam_left.rotation_rectify, np.zeros((3, 1)))
+        pts_3d_in_left = mapping.transform_pt_3d(np.linalg.inv(tf_left_2_left_rectify), pts_3d_in_left_rectify)
+        return pts_3d_in_left
 
 
 def main():

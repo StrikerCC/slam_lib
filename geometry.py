@@ -102,7 +102,7 @@ def corners_2_bounding_box_xyxy(img_box_coord_tgt):
 
     x_min, x_max = np.min(img_box_coord_tgt[:, 0]), np.max(img_box_coord_tgt[:, 0])
     y_min, y_max = np.min(img_box_coord_tgt[:, 1]), np.max(img_box_coord_tgt[:, 1])
-    return x_min, y_min, x_max, y_max
+    return int(x_min), int(y_min), int(x_max), int(y_max)
 
 
 def merge_box(boxes):
