@@ -105,19 +105,29 @@ class BiCamera:
 
     def __init__(self, para_file_path=None):
         self.cam_left, self.cam_right = PinHoleCamera(), PinHoleCamera()
-        if para_file_path is not None or os.path.isfile(str(para_file_path)):
-            if para_file_path[-3:] == 'xml':
-                # f = cv2.cv2.FileStorage(para_file_path, cv2.cv2.FILE_STORAGE_READ)
-                # self.cam_left.camera_matrix, self.cam_right.camera_matrix = f.getNode('leftCameraMatrix').mat(), f.getNode('rightCameraMatrix').mat()
-                # self.cam_left.distortion_coefficient, self.cam_right.distortion_coefficient = f.getNode('leftDistCoeffs').mat(), f.getNode('rightDistCoeffs').mat()
-                # self.rotation, self.translation, self.essential_matrix, self.fundamental_matrix = f.getNode('R').mat(), f.getNode('T').mat(), f.getNode('E').mat(), f.getNode('F').mat()
-                # self.R1, self.P1, self.R2, self.P2, self.Q = f.getNode('R1').mat(), f.getNode('P1').mat(), f.getNode('R2').mat(), f.getNode('P2').mat(), f.getNode('Q').mat()
-                pass
-            elif para_file_path[-4:] == 'json':
-                print('read camera parameter from ', para_file_path)
-                f = open(para_file_path, 'r')
-                params = json.load(f)
-                self.set_params(params)
+        if para_file_path is not None:
+            if os.path.isfile(str(para_file_path)):
+                self.read_cal_param_file_and_set_params(para_file_path)
+            else:
+                print('calibration file doesn\'t exist at', para_file_path)
+
+    def read_cal_param_file_and_set_params(self, para_file_path):
+        if not os.path.isfile(str(para_file_path)):
+            print('calibration file read fail at', para_file_path)
+            return False
+        if para_file_path[-3:] == 'xml':
+            # f = cv2.cv2.FileStorage(para_file_path, cv2.cv2.FILE_STORAGE_READ)
+            # self.cam_left.camera_matrix, self.cam_right.camera_matrix = f.getNode('leftCameraMatrix').mat(), f.getNode('rightCameraMatrix').mat()
+            # self.cam_left.distortion_coefficient, self.cam_right.distortion_coefficient = f.getNode('leftDistCoeffs').mat(), f.getNode('rightDistCoeffs').mat()
+            # self.rotation, self.translation, self.essential_matrix, self.fundamental_matrix = f.getNode('R').mat(), f.getNode('T').mat(), f.getNode('E').mat(), f.getNode('F').mat()
+            # self.R1, self.P1, self.R2, self.P2, self.Q = f.getNode('R1').mat(), f.getNode('P1').mat(), f.getNode('R2').mat(), f.getNode('P2').mat(), f.getNode('Q').mat()
+            return False
+        elif para_file_path[-4:] == 'json':
+            print('read camera parameter from ', para_file_path)
+            f = open(para_file_path, 'r')
+            params = json.load(f)
+            self.set_params(params)
+            return True
 
     def set_params(self, params):
         print('setting camera parameters')

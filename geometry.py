@@ -11,6 +11,7 @@ import math
 
 import cv2
 import transforms3d as t3d
+import scipy.spatial.kdtree
 
 
 def rot2d(angle):
@@ -112,12 +113,78 @@ def merge_box(boxes):
     return box_biggest
 
 
+def nearest_points_2_lines(lines, pts):
+    """
+    find line in
+    :param pts:
+    :param lines:
+    :return:
+    """
+    lines = lines / np.linalg.norm(lines, axis=-1)[:, None]  # normalize line
+    pts_square = np.sum(np.power(pts, 2), axis=-1)
+    index_lines_2_pts = [-1 for i in range(len(lines))]
+
+    for i_line, line in enumerate(lines):
+        '''compute pts projection normal to the line'''
+        pts_project_on_line_square = np.power(np.matmul(pts, line), 2)
+        pts_project_on_line_normal_square = pts_square - pts_project_on_line_square
+        i_pt_min = np.argmin(pts_project_on_line_normal_square)
+        index_lines_2_pts[i_line] = int(i_pt_min)
+    return index_lines_2_pts, lines
+
+
+def closet_vector_2_point(lines, pts):
+    """
+    compute each pt projection on each line, assume line is normalized to length 1
+    :param pts:
+    :param lines:
+    :return:
+    """
+    assert len(pts) == len(lines)
+    lengths = np.sum(pts * lines, axis=-1)[:, None]
+    return lengths * lines
+
+
+def nearest_neighbor_points_2_points(pts1, pts2):
+    """
+
+    :param pts1:
+    :param pts2:
+    :return:
+    """
+    query = pts1
+    tree = scipy.spatial.kdtree.KDTree(pts2)
+    id_query_2_tree = [-1 for _ in range(len(pts1))]
+
+    for i_query, pt in enumerate(query):
+        dd, id_query_pt_2_tree_pt = tree.query(pt)
+        id_query_2_tree[i_query] = id_query_pt_2_tree_pt
+
+    id_pts1_2_pts2 = [[id_pts1, id_pts2] for id_pts1, id_pts2 in enumerate(id_query_2_tree)]
+    return id_pts1_2_pts2
+
+
 def main():
-    v1, v2 = np.array([1.0,
-                       0.0]), \
-             np.array([1.0,
-                       -0.0])
-    print(angle_between_2_vector(v1, v2))
+    lines = np.array([[1, 0, 0],
+                      [0, 1, 0],
+                      [0, 0, 1],
+                      [1, 1, 0]])
+    pts = np.copy(lines) * 9
+    index_lines_2_pts, lines = nearest_points_2_lines(lines, pts)
+
+    print(lines)
+    print(pts)
+    print(index_lines_2_pts)
+
+    for i, index_line_2_pt in enumerate(index_lines_2_pts):
+        print(lines[i], pts[index_line_2_pt])
+
+    pts = pts[index_lines_2_pts]
+    lines_proj = closet_vector_2_point(lines, pts)
+
+    print(lines)
+    print(pts)
+    print(lines_proj)
 
 
 # def main():
