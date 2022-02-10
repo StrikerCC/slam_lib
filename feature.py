@@ -46,9 +46,6 @@ def sift_features(img, flag_debug=False):
 
     if flag_debug:
         img_kp = cv2.drawKeypoints(img, kp, None)
-        print(len(kp))
-        print(kp[0])
-        print(des.shape)
         cv2.namedWindow('kp', cv2.WINDOW_NORMAL)
         cv2.imshow('kp', img_kp)
         cv2.waitKey(wait_key)
@@ -56,113 +53,138 @@ def sift_features(img, flag_debug=False):
     return kp, des
 
 
-def match_pts(img1, img2, flag_debug=False):
+def get_sift_pts_and_sift_feats(img1, img2, shrink=-1, flag_debug=False):
+    """
+
+    :param img1:
+    :param img2:
+    :param shrink: -1: shrink bigger img to match smaller img size. 0: no shrink, >0, shrink both by what ratio shrink given
+    :param flag_debug:
+    :return:
+    """
     if img1 is None or img2 is None:
         return None
-
-    shrink = img1.shape[0] / img2.shape[0]
+    '''shrink img'''
+    shrink1, shrink2 = 1, 1
     img1_sub, img2_sub = img1, img2
-    if shrink > 1:
-        img1_sub = cv2.resize(img1_sub, (int(img1.shape[1] / shrink), int(img1.shape[0] / shrink)))
+
+    if shrink == -1.0:
+        img1_over_img2 = img1.shape[0] / img2.shape[0]
+        if shrink > 1.0:
+            shrink1 = img1_over_img2
+        else:
+            shrink2 = 1.0 / img1_over_img2
+    elif shrink == 0.0:
+        pass
+    elif shrink > 0.0:
+        shrink1, shrink2 = shrink, shrink
     else:
+        raise NotImplementedError('shrink #' + str(shrink) + ' not implemented')
 
-        img2_sub = cv2.resize(img2_sub, (int(img2.shape[1] / (1/shrink)), int(img2.shape[0] / (1/shrink))))
+    if not shrink1 == 1:
+        img1_sub = cv2.resize(img1_sub, (int(img1.shape[1] / shrink1), int(img1.shape[0] / shrink1)))
+    if not shrink2 == 1:
+        img2_sub = cv2.resize(img2_sub, (int(img2.shape[1] / shrink2), int(img2.shape[0] / shrink2)))
 
+    '''compute sift feature'''
     kp1, des1 = sift_features(img1_sub, flag_debug)
     kp2, des2 = sift_features(img2_sub, flag_debug)
 
-    # pts1 = np.float32([kp.pt for kp in kp1]).reshape(-1, 2) * shrink
-    # pts2 = np.float32([kp.pt for kp in kp2]).reshape(-1, 2) * shrink
+    pts_1 = np.float32([kp.pt for kp in kp1]).reshape(-1, 2) * shrink1
+    pts_2 = np.float32([kp.pt for kp in kp2]).reshape(-1, 2) * shrink2
 
+    return pts_1, des1, pts_2, des2
+
+
+def match_sift_feats(pts1, des1, pts2, des2, img1=None, img2=None, flag_output=False):
+    """
+
+    :param pts1:
+    :param des1:
+    :param pts2:
+    :param des2:
+    :param img1:
+    :param img2:
+    :param flag_output:
+    :return:
+    """
+
+    '''filter with feature value ambiguity'''
     bf = cv2.BFMatcher_create()
     matches = bf.knnMatch(des1, des2, k=2)
     good_matches = [first for first, second in matches if first.distance < 0.85 * second.distance]
+    index_match = np.asarray([[m.queryIdx, m.trainIdx] for m in good_matches])
 
-    pts1 = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-    pts2 = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+    pts1 = pts1[index_match[:, 0].tolist()]  # queryIdx
+    des1 = des1[index_match[:, 0]]
+    pts2 = pts2[index_match[:, 1].tolist()]  # trainIdx
+    des2 = des2[index_match[:, 1]]
 
-    if shrink > 1:
-        pts1 = pts1 * shrink
-    else:
-        pts2 = pts2 / shrink
+    # pts1 = np.float32([pts1[m.queryIdx] for m in good_matches]).reshape(-1, 1, 2)
+    # pts2 = np.float32([pts2[m.trainIdx] for m in good_matches]).reshape(-1, 1, 2)
 
-    # if flag_debug:
-    #     print('Get ', len(good_matches), ' good matches')
-    #     img3 = cv2.drawMatches(img1, kp1, img2, kp2, good_matches, None, flags=2)
-    #     cv2.namedWindow('match', cv2.WINDOW_NORMAL)
-    #     cv2.imshow('match', img3)
-    #     cv2.waitKey(wait_key)
-
-    if flag_debug:
+    if flag_output:
+        print('feature value ambiguity', len(good_matches), '/', len(matches), 'points left')
+    if img1 is not None and img2 is not None:
         print('Get ', len(pts1), ' good matches')
         img3 = vis.draw_matches(img1, pts1, img2, pts2)
         cv2.namedWindow('match', cv2.WINDOW_NORMAL)
         cv2.imshow('match', img3)
         cv2.waitKey(wait_key)
 
-    return pts1, des1, pts2, des2
+    return pts1, des1, pts2, des2, index_match
 
 
 # def match_filter_pts_pair(kp1, des1, kp2, des2):
-def match_filter_pts_pair(pts1, des1, pts2, des2):
-    bf = cv2.BFMatcher_create()
-    matches = bf.knnMatch(des1, des2, k=2)
+def epipolar_geometry_filter_matched_pts_pair(pts1, des1, pts2, des2, img1=None, img2=None, flag_output=False):
+    """
 
-    '''filter with feature value ambiguity'''
-    good_matches = [first for first, second in matches if first.distance < 0.85 * second.distance]
-    index_match = np.asarray([[m.queryIdx, m.trainIdx] for m in good_matches])
-
-    pts1 = pts1[index_match[:, 0].tolist()]  # queryIdx
-    des1 = des1[index_match[:, 0]]
-
-    pts2 = pts2[index_match[:, 1].tolist()]  # trainIdx
-    des2 = des2[index_match[:, 1]]
-
-    print('feature value ambiguity', len(good_matches), '/', len(matches), 'points left')
+    :param pts1:
+    :param des1:
+    :param pts2:
+    :param des2:
+    :param img1:
+    :param img2:
+    :param flag_output:
+    :return:
+    """
+    assert len(pts1) == len(pts2) == len(des1) == len(des2)
+    len_input_pts = len(pts1)
 
     '''filter with epi-polar geometry ransac'''
-    F, mask = cv2.cv2.findFundamentalMat(pts1, pts2, cv2.cv2.FM_RANSAC, ransacReprojThreshold=2.0, confidence=0.9999,
+    fundamental_matrix, mask = cv2.cv2.findFundamentalMat(pts1, pts2, cv2.cv2.FM_RANSAC, ransacReprojThreshold=2.0, confidence=0.9999,
                                          maxIters=10000)
 
+    # TODO: fail case fundamental found nothing
+
     mask_ = mask.squeeze().astype(bool).tolist()
-
-    index_match = index_match[mask_]
-    index_match_set = set(index_match[:, 0].tolist())
-
     pts1 = pts1[mask_]
     des1 = des1[mask_]
     pts2 = pts2[mask_]
     des2 = des2[mask_]
 
-    good_matches = [m for m in good_matches if m.queryIdx in index_match_set]
+    if flag_output:
+        print('epi-polar geometry ransac filter', len(pts1), '/', len_input_pts, 'points left.\n'
+                                                                                 'epi-polar rms',
+              np.mean(np.sum(
+                  np.matmul(np.hstack([pts1, np.ones((len(pts1), 1))]), fundamental_matrix) * np.hstack(
+                      [pts2, np.ones((len(pts1), 1))]),
+                  axis=1)))
+    if img1 is not None and img2 is not None:
+        img3 = vis.draw_matches(img1, pts1, img2, pts2)
+        cv2.namedWindow('match', cv2.WINDOW_NORMAL)
+        cv2.imshow('match', img3)
+        cv2.waitKey(wait_key)
+    return pts1, des1, pts2, des2, mask_
 
-    print('epi-polar geometry ransac', len(good_matches), '/', len(matches), 'points left, epi-polar rms',
-          np.mean(np.sum(
-              np.matmul(np.hstack([pts1, np.ones((len(pts1), 1))]), F) * np.hstack([pts2, np.ones((len(pts1), 1))]),
-              axis=1)))
 
-    return pts1, des1, pts2, des2
-
-
-def get_sift_and_pts(img1, img2, flag_debug=False):
+def get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, shrink=1.0, flag_debug=False):
     if img1 is None or img2 is None:
         return None
 
-    shrink = 1.0
-    img1_sub = cv2.resize(img1, (int(img1.shape[1] / shrink), int(img1.shape[0] / shrink)))
-    img2_sub = cv2.resize(img2, (int(img2.shape[1] / shrink), int(img2.shape[0] / shrink)))
-
-    # kp1, des1 = sift_features(img1_sub, flag_debug)
-    # kp2, des2 = sift_features(img2_sub, flag_debug)
-
-    kp1, des1 = sift_features(img1_sub)
-    kp2, des2 = sift_features(img2_sub)
-
-    pts1 = np.float32([kp.pt for kp in kp1]).reshape(-1, 2) * shrink
-    pts2 = np.float32([kp.pt for kp in kp2]).reshape(-1, 2) * shrink
-
-    # pts1, des1, pts2, des2, good_matches = match_filter_pts_pair(kp1, des1, kp2, des2)
-    pts1, des1, pts2, des2 = match_filter_pts_pair(pts1, des1, pts2, des2)
+    pts1, des1, pts2, des2 = get_sift_pts_and_sift_feats(img1, img2, shrink=shrink, flag_debug=flag_debug)
+    pts1, des1, pts2, des2, _ = match_sift_feats(pts1, des1, pts2, des2)
+    pts1, des1, pts2, des2, _ = epipolar_geometry_filter_matched_pts_pair(pts1, des1, pts2, des2)
 
     '''statistics'''
     if flag_debug:
@@ -176,7 +198,7 @@ def get_sift_and_pts(img1, img2, flag_debug=False):
 
 
 def get_pts_pair_by_sift(img1, img2, flag_debug=False):
-    pts1, des1, pts2, des2, good_matches = get_sift_and_pts(img1, img2, flag_debug)
+    pts1, des1, pts2, des2, good_matches = get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, flag_debug)
     return pts1, pts2
 
 
