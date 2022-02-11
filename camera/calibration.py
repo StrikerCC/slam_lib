@@ -10,7 +10,7 @@ import time
 import cv2
 import numpy as np
 import json
-from slam_lib.camera.cam import PinHoleCamera, BiCamera
+from slam_lib.camera.cam import PinHoleCamera, StereoCamera
 import slam_lib.feature as feature
 import slam_lib.dataset as dataset
 
@@ -144,7 +144,7 @@ def main():
 
     img_dir = '../data/1/'
     img_left_paths, img_right_paths = dataset.get_left_right_img_path_in_one_folder(img_dir)
-    binocular = BiCamera()
+    binocular = StereoCamera()
     stereo_calibrate(square_size, checkboard_size, img_left_paths, img_right_paths, binocular=binocular,
                      file_path_2_save='../config/bicam_cal_para.json')
 
