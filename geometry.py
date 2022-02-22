@@ -12,6 +12,7 @@ import math
 import cv2
 import transforms3d as t3d
 import scipy.spatial.kdtree
+import slam_lib.vis as vis
 
 
 def rot2d(angle):
@@ -113,24 +114,26 @@ def merge_box(boxes):
     return box_biggest
 
 
-def nearest_points_2_lines(lines, pts):
+def nearest_points_2_lines(lines, pts, normal_distance_min=3.0):
     """
     find line in
     :param pts:
     :param lines:
     :return:
     """
+    normal_distance_min_square = normal_distance_min ** 2
     lines = lines / np.linalg.norm(lines, axis=-1)[:, None]  # normalize line
     pts_square = np.sum(np.power(pts, 2), axis=-1)
-    index_lines_2_pts = [-1 for i in range(len(lines))]
-
+    index_lines_2_pts = np.asarray([-1] * len(lines))
+    mask = []
     for i_line, line in enumerate(lines):
         '''compute pts projection normal to the line'''
         pts_project_on_line_square = np.power(np.matmul(pts, line), 2)
         pts_project_on_line_normal_square = pts_square - pts_project_on_line_square
         i_pt_min = np.argmin(pts_project_on_line_normal_square)
         index_lines_2_pts[i_line] = int(i_pt_min)
-    return index_lines_2_pts, lines
+        mask.append(pts_project_on_line_normal_square[i_pt_min] < normal_distance_min_square)
+    return index_lines_2_pts[mask].tolist(), lines[mask]
 
 
 def closet_vector_2_point(lines, pts):
@@ -145,7 +148,7 @@ def closet_vector_2_point(lines, pts):
     return lengths * lines
 
 
-def nearest_neighbor_points_2_points(pts1, pts2):
+def nearest_neighbor_points_2_points(pts1, pts2, distance_min=3):
     """
 
     :param pts1:
@@ -154,14 +157,57 @@ def nearest_neighbor_points_2_points(pts1, pts2):
     """
     query = pts1
     tree = scipy.spatial.kdtree.KDTree(pts2)
-    id_query_2_tree = [-1 for _ in range(len(pts1))]
+    id_pts1_2_pts2 = []
 
     for i_query, pt in enumerate(query):
         dd, id_query_pt_2_tree_pt = tree.query(pt)
-        id_query_2_tree[i_query] = id_query_pt_2_tree_pt
+        if dd < distance_min:
+            id_pts1_2_pts2.append([i_query, id_query_pt_2_tree_pt])
+    id_pts1_2_pts2 = np.asarray(id_pts1_2_pts2)
+    pts1_match = pts1[id_pts1_2_pts2[:, 0].tolist()]
+    pts2_match = pts2[id_pts1_2_pts2[:, 1].tolist()]
+    return pts1_match, pts2_match, id_pts1_2_pts2
 
-    id_pts1_2_pts2 = [[id_pts1, id_pts2] for id_pts1, id_pts2 in enumerate(id_query_2_tree)]
-    return id_pts1_2_pts2
+
+# def match_filter_pts_pair(kp1, des1, kp2, des2):
+def epipolar_geometry_filter_matched_pts_pair(pts1, pts2, img1=None, img2=None, flag_output=False):
+    """
+
+    :param pts1:
+    :param des1:
+    :param pts2:
+    :param des2:
+    :param img1:
+    :param img2:
+    :param flag_output:
+    :return:
+    """
+    assert len(pts1) == len(pts2)
+    len_input_pts = len(pts1)
+
+    '''filter with epi-polar geometry ransac'''
+    fundamental_matrix, mask = cv2.cv2.findFundamentalMat(pts1, pts2, cv2.cv2.FM_RANSAC, ransacReprojThreshold=8.0, confidence=0.9999,
+                                         maxIters=10000)
+
+    # TODO: fail case fundamental found nothing
+
+    mask_ = mask.squeeze().astype(bool).tolist()
+    pts1 = pts1[mask_]
+    pts2 = pts2[mask_]
+
+    if flag_output:
+        print('epi-polar geometry ransac filter', len(pts1), '/', len_input_pts, 'points left.\n'
+                                                                                 'epi-polar rms',
+              np.mean(np.sum(
+                  np.matmul(np.hstack([pts1, np.ones((len(pts1), 1))]), fundamental_matrix) * np.hstack(
+                      [pts2, np.ones((len(pts1), 1))]),
+                  axis=1)))
+    if img1 is not None and img2 is not None:
+        img3 = vis.draw_matches(img1, pts1, img2, pts2)
+        cv2.namedWindow('match', cv2.WINDOW_NORMAL)
+        cv2.imshow('match', img3)
+        cv2.waitKey(0)
+    return pts1, pts2, mask_
 
 
 def main():

@@ -14,9 +14,93 @@ import numpy as np
 from scipy.spatial.kdtree import KDTree
 
 import slam_lib.geometry
+import slam_lib.mapping
 import slam_lib.vis as vis
 
+import torch
+import slam_lib.models
+from slam_lib.models.matching import Matching
+from slam_lib.models.utils import AverageTimer, read_image
+
 wait_key = 0
+
+
+class Matcher:
+    def __init__(self):
+        self.timer = AverageTimer(newline=True)
+
+        # Load the SuperPoint and SuperGlue models.
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        torch.set_grad_enabled(False)
+        config = {
+            'superpoint': {
+                'nms_radius': 4,
+                'keypoint_threshold': 0.005,
+                'max_keypoints': 1024
+            },
+            'superglue': {
+                'weights': 'indoor',
+                'sinkhorn_iterations': 20,
+                'match_threshold': 0.2,
+            }
+        }
+
+        self.matching = Matching(config).eval().to(self.device)
+        print('SuperGlue', config)
+        print('Running inference on device \"{}\"'.format(self.device))
+
+        # load dataset
+        # self.resize = [4096, 3000]
+        # self.resize = [2048, 1500]
+        # self.resize = [1365, 1000]
+        # self.resize = [1024, 750]
+        # self.resize = [512, 375]
+
+        self.resize = [3088, 2064]
+        # self.resize = [1544, 1032]
+        # self.resize = [772, 516]
+        # self.resize = [386, 258]
+
+    def match(self, img_1, img_2, flag_vis=False):
+        img_left, img_right = None, None
+        if isinstance(img_1, str):
+            img_left = cv2.imread(img_1)
+        elif isinstance(img_1, np.ndarray):
+            img_left = img_1
+
+        if isinstance(img_2, str):
+            img_right = cv2.imread(img_2)
+        elif isinstance(img_2, np.ndarray):
+            img_right = img_2
+
+        gray_0, inp0, scales0 = read_image(img_1, self.device, self.resize, rotation=0, resize_float=True)
+        gray_1, inp1, scales1 = read_image(img_2, self.device, self.resize, rotation=0, resize_float=True)
+
+        pred = self.matching({'image0': inp0, 'image1': inp1})
+        pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
+        kpts_0, kpts_1 = pred['keypoints0'], pred['keypoints1']
+        feats_0, feats_1 = pred['descriptors0'].T, pred['descriptors1'].T
+        matches, conf = pred['matches0'], pred['matching_scores0']
+
+        self.timer.update('matcher')
+
+        # Keep the matching keypoints and scale points back
+        valid = matches > -1
+        mkpts_0 = kpts_0[valid]
+        mfeats_0 = feats_0[valid]
+        mkpts_1 = kpts_1[matches[valid]]
+        mfeats_1 = feats_1[matches[valid]]
+        mconf = conf[valid]
+
+        pts_2d_0, pts_2d_1 = slam_lib.mapping.scale_pts(scales0, mkpts_0), slam_lib.mapping.scale_pts(scales1, mkpts_1)
+
+        if flag_vis:
+            img3 = slam_lib.vis.draw_matches(img_left, pts_2d_0, img_right, pts_2d_1)
+            cv2.namedWindow('match', cv2.WINDOW_NORMAL)
+            cv2.imshow('match', img3)
+            cv2.waitKey(0)
+
+        return pts_2d_0, pts_2d_1
 
 
 def make_chessbaord_corners_coord(chessboard_size, square_size):
@@ -53,12 +137,12 @@ def sift_features(img, flag_debug=False):
     return kp, des
 
 
-def get_sift_pts_and_sift_feats(img1, img2, shrink=-1, flag_debug=False):
+def get_sift_pts_and_sift_feats(img1, img2, shrink=-1.0, flag_debug=False):
     """
 
     :param img1:
     :param img2:
-    :param shrink: -1: shrink bigger img to match smaller img size. 0: no shrink, >0, shrink both by what ratio shrink given
+    :param shrink: -1.0: shrink bigger img to match smaller img size. 0: no shrink, >0, shrink both by what ratio shrink given
     :param flag_debug:
     :return:
     """
@@ -90,6 +174,8 @@ def get_sift_pts_and_sift_feats(img1, img2, shrink=-1, flag_debug=False):
     kp1, des1 = sift_features(img1_sub, flag_debug)
     kp2, des2 = sift_features(img2_sub, flag_debug)
 
+    print(len(kp1), len(kp2))
+
     pts_1 = np.float32([kp.pt for kp in kp1]).reshape(-1, 2) * shrink1
     pts_2 = np.float32([kp.pt for kp in kp2]).reshape(-1, 2) * shrink2
 
@@ -112,7 +198,7 @@ def match_sift_feats(pts1, des1, pts2, des2, img1=None, img2=None, flag_output=F
     '''filter with feature value ambiguity'''
     bf = cv2.BFMatcher_create()
     matches = bf.knnMatch(des1, des2, k=2)
-    good_matches = [first for first, second in matches if first.distance < 0.85 * second.distance]
+    good_matches = [first for first, second in matches if first.distance < 0.65 * second.distance]
     index_match = np.asarray([[m.queryIdx, m.trainIdx] for m in good_matches])
 
     pts1 = pts1[index_match[:, 0].tolist()]  # queryIdx
@@ -135,56 +221,13 @@ def match_sift_feats(pts1, des1, pts2, des2, img1=None, img2=None, flag_output=F
     return pts1, des1, pts2, des2, index_match
 
 
-# def match_filter_pts_pair(kp1, des1, kp2, des2):
-def epipolar_geometry_filter_matched_pts_pair(pts1, des1, pts2, des2, img1=None, img2=None, flag_output=False):
-    """
-
-    :param pts1:
-    :param des1:
-    :param pts2:
-    :param des2:
-    :param img1:
-    :param img2:
-    :param flag_output:
-    :return:
-    """
-    assert len(pts1) == len(pts2) == len(des1) == len(des2)
-    len_input_pts = len(pts1)
-
-    '''filter with epi-polar geometry ransac'''
-    fundamental_matrix, mask = cv2.cv2.findFundamentalMat(pts1, pts2, cv2.cv2.FM_RANSAC, ransacReprojThreshold=2.0, confidence=0.9999,
-                                         maxIters=10000)
-
-    # TODO: fail case fundamental found nothing
-
-    mask_ = mask.squeeze().astype(bool).tolist()
-    pts1 = pts1[mask_]
-    des1 = des1[mask_]
-    pts2 = pts2[mask_]
-    des2 = des2[mask_]
-
-    if flag_output:
-        print('epi-polar geometry ransac filter', len(pts1), '/', len_input_pts, 'points left.\n'
-                                                                                 'epi-polar rms',
-              np.mean(np.sum(
-                  np.matmul(np.hstack([pts1, np.ones((len(pts1), 1))]), fundamental_matrix) * np.hstack(
-                      [pts2, np.ones((len(pts1), 1))]),
-                  axis=1)))
-    if img1 is not None and img2 is not None:
-        img3 = vis.draw_matches(img1, pts1, img2, pts2)
-        cv2.namedWindow('match', cv2.WINDOW_NORMAL)
-        cv2.imshow('match', img3)
-        cv2.waitKey(wait_key)
-    return pts1, des1, pts2, des2, mask_
-
-
 def get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, shrink=1.0, flag_debug=False):
     if img1 is None or img2 is None:
         return None
 
     pts1, des1, pts2, des2 = get_sift_pts_and_sift_feats(img1, img2, shrink=shrink, flag_debug=flag_debug)
     pts1, des1, pts2, des2, _ = match_sift_feats(pts1, des1, pts2, des2)
-    pts1, des1, pts2, des2, _ = epipolar_geometry_filter_matched_pts_pair(pts1, des1, pts2, des2)
+    pts1, pts2, _ = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(pts1, pts2)
 
     '''statistics'''
     if flag_debug:

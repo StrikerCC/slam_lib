@@ -39,6 +39,7 @@
 # %AUTHORS_END%
 # --------------------------------------------------------------------*/
 # %BANNER_END%
+import time
 
 import torch
 
@@ -60,6 +61,7 @@ class Matching(torch.nn.Module):
           data: dictionary with minimal keys: ['image0', 'image1']
         """
         pred = {}
+        time_start = time.time()
 
         # Extract SuperPoint (keypoints, scores, descriptors) if not provided
         if 'keypoints0' not in data:
@@ -69,22 +71,32 @@ class Matching(torch.nn.Module):
             #     'scores0': scores,
             #     'descriptors0': descriptors,
             # }
+
             pred0 = self.superpoint({'image': data['image0']})
             pred = {**pred, **{k+'0': v for k, v in pred0.items()}}
         if 'keypoints1' not in data:
             pred1 = self.superpoint({'image': data['image1']})
             pred = {**pred, **{k+'1': v for k, v in pred1.items()}}
 
+        time_feat = time.time() - time_start
+        print('superpoint get feature in', time_feat)
+
         # Batch all features
         # We should either have i) one image per batch, or
         # ii) the same number of local features for all images in the batch.
         data = {**data, **pred}
+
+        time_start = time.time()
 
         for k in data:
             if isinstance(data[k], (list, tuple)):
                 data[k] = torch.stack(data[k])
 
         # Perform the matching
+
         pred = {**pred, **self.superglue(data)}
+        time_match = time.time() - time_start
+        print('superglue match feature in', time_match)
+        print(time_feat + time_match)
 
         return pred
