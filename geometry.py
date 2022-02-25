@@ -186,7 +186,7 @@ def epipolar_geometry_filter_matched_pts_pair(pts1, pts2, img1=None, img2=None, 
     len_input_pts = len(pts1)
 
     '''filter with epi-polar geometry ransac'''
-    fundamental_matrix, mask = cv2.cv2.findFundamentalMat(pts1, pts2, cv2.cv2.FM_RANSAC, ransacReprojThreshold=8.0, confidence=0.9999,
+    fundamental_matrix, mask = cv2.findFundamentalMat(pts1, pts2, cv2.cv2.FM_RANSAC, ransacReprojThreshold=8.0, confidence=0.9999,
                                          maxIters=10000)
 
     # TODO: fail case fundamental found nothing

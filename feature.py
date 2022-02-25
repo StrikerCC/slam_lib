@@ -77,6 +77,10 @@ class Matcher:
         gray_1, inp1, scales1 = read_image(img_2, self.device, self.resize, rotation=0, resize_float=True)
 
         pred = self.matching({'image0': inp0, 'image1': inp1})
+
+
+
+
         pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
         kpts_0, kpts_1 = pred['keypoints0'], pred['keypoints1']
         feats_0, feats_1 = pred['descriptors0'].T, pred['descriptors1'].T
@@ -100,7 +104,7 @@ class Matcher:
             cv2.imshow('match', img3)
             cv2.waitKey(0)
 
-        return pts_2d_0, pts_2d_1
+        return pts_2d_0, feats_0, pts_2d_1, feats_1
 
 
 def make_chessbaord_corners_coord(chessboard_size, square_size):
