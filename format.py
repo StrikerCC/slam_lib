@@ -58,6 +58,8 @@ def test_timer():
 
 
 def xml_2_pts(xml_file_path):
+    if not os.path.isfile(xml_file_path):
+        return None
     pts_xml = xml.etree.ElementTree.parse(xml_file_path)
     root = pts_xml.getroot()
     pts = []
@@ -68,6 +70,8 @@ def xml_2_pts(xml_file_path):
 
 
 def pts_2_xml(pts, xml_file_path):
+    if not pts or len(pts) == 0:
+        return True
     if isinstance(pts, np.ndarray):
         pts = pts.tolist()
     vector_xml = xml.etree.ElementTree.Element('vector')
