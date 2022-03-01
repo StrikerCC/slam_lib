@@ -26,11 +26,11 @@ wait_key = 0
 
 
 class Matcher:
-    def __init__(self):
+    def __init__(self, cuda='0'):
         self.timer = AverageTimer(newline=True)
 
         # Load the SuperPoint and SuperGlue models.
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = 'cuda:'+str(cuda) if torch.cuda.is_available() else 'cpu'
         torch.set_grad_enabled(False)
         config = {
             'superpoint': {
@@ -81,7 +81,10 @@ class Matcher:
 
 
 
-        pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
+        # pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
+        pred = {k: v[0].detach().numpy() for k, v in pred.items()}
+
+
         kpts_0, kpts_1 = pred['keypoints0'], pred['keypoints1']
         feats_0, feats_1 = pred['descriptors0'].T, pred['descriptors1'].T
         matches, conf = pred['matches0'], pred['matching_scores0']

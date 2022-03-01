@@ -49,9 +49,9 @@ from threading import Thread
 import numpy as np
 import cv2
 import torch
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib.pyplot as plt
+# import matplotlib
+# matplotlib.use('Agg')
 
 
 class AverageTimer:
@@ -424,73 +424,73 @@ def pose_auc(errors, thresholds):
 # --- VISUALIZATION ---
 
 
-def plot_image_pair(imgs, dpi=100, size=6, pad=.5):
-    n = len(imgs)
-    assert n == 2, 'number of images must be two'
-    figsize = (size*n, size*3/4) if size is not None else None
-    _, ax = plt.subplots(1, n, figsize=figsize, dpi=dpi)
-    for i in range(n):
-        ax[i].imshow(imgs[i], cmap=plt.get_cmap('gray'), vmin=0, vmax=255)
-        ax[i].get_yaxis().set_ticks([])
-        ax[i].get_xaxis().set_ticks([])
-        for spine in ax[i].spines.values():  # remove frame
-            spine.set_visible(False)
-    plt.tight_layout(pad=pad)
+# def plot_image_pair(imgs, dpi=100, size=6, pad=.5):
+#     n = len(imgs)
+#     assert n == 2, 'number of images must be two'
+#     figsize = (size*n, size*3/4) if size is not None else None
+#     _, ax = plt.subplots(1, n, figsize=figsize, dpi=dpi)
+#     for i in range(n):
+#         ax[i].imshow(imgs[i], cmap=plt.get_cmap('gray'), vmin=0, vmax=255)
+#         ax[i].get_yaxis().set_ticks([])
+#         ax[i].get_xaxis().set_ticks([])
+#         for spine in ax[i].spines.values():  # remove frame
+#             spine.set_visible(False)
+#     plt.tight_layout(pad=pad)
+#
+#
+# def plot_keypoints(kpts0, kpts1, color='w', ps=2):
+#     ax = plt.gcf().axes
+#     ax[0].scatter(kpts0[:, 0], kpts0[:, 1], c=color, s=ps)
+#     ax[1].scatter(kpts1[:, 0], kpts1[:, 1], c=color, s=ps)
+#
+#
+# def plot_matches(kpts0, kpts1, color, lw=1.5, ps=4):
+#     fig = plt.gcf()
+#     ax = fig.axes
+#     fig.canvas.draw()
+#
+#     transFigure = fig.transFigure.inverted()
+#     fkpts0 = transFigure.transform(ax[0].transData.transform(kpts0))
+#     fkpts1 = transFigure.transform(ax[1].transData.transform(kpts1))
+#
+#     fig.lines = [matplotlib.lines.Line2D(
+#         (fkpts0[i, 0], fkpts1[i, 0]), (fkpts0[i, 1], fkpts1[i, 1]), zorder=1,
+#         transform=fig.transFigure, c=color[i], linewidth=lw)
+#                  for i in range(len(kpts0))]
+#     ax[0].scatter(kpts0[:, 0], kpts0[:, 1], c=color, s=ps)
+#     ax[1].scatter(kpts1[:, 0], kpts1[:, 1], c=color, s=ps)
 
 
-def plot_keypoints(kpts0, kpts1, color='w', ps=2):
-    ax = plt.gcf().axes
-    ax[0].scatter(kpts0[:, 0], kpts0[:, 1], c=color, s=ps)
-    ax[1].scatter(kpts1[:, 0], kpts1[:, 1], c=color, s=ps)
-
-
-def plot_matches(kpts0, kpts1, color, lw=1.5, ps=4):
-    fig = plt.gcf()
-    ax = fig.axes
-    fig.canvas.draw()
-
-    transFigure = fig.transFigure.inverted()
-    fkpts0 = transFigure.transform(ax[0].transData.transform(kpts0))
-    fkpts1 = transFigure.transform(ax[1].transData.transform(kpts1))
-
-    fig.lines = [matplotlib.lines.Line2D(
-        (fkpts0[i, 0], fkpts1[i, 0]), (fkpts0[i, 1], fkpts1[i, 1]), zorder=1,
-        transform=fig.transFigure, c=color[i], linewidth=lw)
-                 for i in range(len(kpts0))]
-    ax[0].scatter(kpts0[:, 0], kpts0[:, 1], c=color, s=ps)
-    ax[1].scatter(kpts1[:, 0], kpts1[:, 1], c=color, s=ps)
-
-
-def make_matching_plot(image0, image1, kpts0, kpts1, mkpts0, mkpts1,
-                       color, text, path, show_keypoints=False,
-                       fast_viz=False, opencv_display=False,
-                       opencv_title='matches', small_text=[]):
-
-    if fast_viz:
-        make_matching_plot_fast(image0, image1, kpts0, kpts1, mkpts0, mkpts1,
-                                color, text, path, show_keypoints, 10,
-                                opencv_display, opencv_title, small_text)
-        return
-
-    plot_image_pair([image0, image1])
-    if show_keypoints:
-        plot_keypoints(kpts0, kpts1, color='k', ps=4)
-        plot_keypoints(kpts0, kpts1, color='w', ps=2)
-    plot_matches(mkpts0, mkpts1, color)
-
-    fig = plt.gcf()
-    txt_color = 'k' if image0[:100, :150].mean() > 200 else 'w'
-    fig.text(
-        0.01, 0.99, '\n'.join(text), transform=fig.axes[0].transAxes,
-        fontsize=15, va='top', ha='left', color=txt_color)
-
-    txt_color = 'k' if image0[-100:, :150].mean() > 200 else 'w'
-    fig.text(
-        0.01, 0.01, '\n'.join(small_text), transform=fig.axes[0].transAxes,
-        fontsize=5, va='bottom', ha='left', color=txt_color)
-
-    plt.savefig(str(path), bbox_inches='tight', pad_inches=0)
-    plt.close()
+# def make_matching_plot(image0, image1, kpts0, kpts1, mkpts0, mkpts1,
+#                        color, text, path, show_keypoints=False,
+#                        fast_viz=False, opencv_display=False,
+#                        opencv_title='matches', small_text=[]):
+#
+#     if fast_viz:
+#         make_matching_plot_fast(image0, image1, kpts0, kpts1, mkpts0, mkpts1,
+#                                 color, text, path, show_keypoints, 10,
+#                                 opencv_display, opencv_title, small_text)
+#         return
+#
+#     plot_image_pair([image0, image1])
+#     if show_keypoints:
+#         plot_keypoints(kpts0, kpts1, color='k', ps=4)
+#         plot_keypoints(kpts0, kpts1, color='w', ps=2)
+#     plot_matches(mkpts0, mkpts1, color)
+#
+#     fig = plt.gcf()
+#     txt_color = 'k' if image0[:100, :150].mean() > 200 else 'w'
+#     fig.text(
+#         0.01, 0.99, '\n'.join(text), transform=fig.axes[0].transAxes,
+#         fontsize=15, va='top', ha='left', color=txt_color)
+#
+#     txt_color = 'k' if image0[-100:, :150].mean() > 200 else 'w'
+#     fig.text(
+#         0.01, 0.01, '\n'.join(small_text), transform=fig.axes[0].transAxes,
+#         fontsize=5, va='bottom', ha='left', color=txt_color)
+#
+#     plt.savefig(str(path), bbox_inches='tight', pad_inches=0)
+#     plt.close()
 
 
 def make_matching_plot_fast(image0, image1, kpts0, kpts1, mkpts0,

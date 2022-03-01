@@ -6,7 +6,7 @@
 @time: 12/9/21 1:40 PM
 """
 import os
-import pyheif
+# import pyheif
 from PIL import Image
 
 img_file_format = {'bmp', 'BMP', 'ppm', 'jpg', 'pgm', 'JPG'}
