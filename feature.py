@@ -54,14 +54,16 @@ class Matcher:
         # self.resize = [2048, 1500]
         # self.resize = [1365, 1000]
         # self.resize = [1024, 750]
-        # self.resize = [512, 375]
+        self.resize = [512, 375]
 
-        self.resize = [3088, 2064]
+        # self.resize = [3088, 2064]
         # self.resize = [1544, 1032]
         # self.resize = [772, 516]
         # self.resize = [386, 258]
 
     def match(self, img_1, img_2, flag_vis=False):
+        torch.set_grad_enabled(False)
+
         img_left, img_right = None, None
         if isinstance(img_1, str):
             img_left = cv2.imread(img_1)
@@ -78,11 +80,8 @@ class Matcher:
 
         pred = self.matching({'image0': inp0, 'image1': inp1})
 
-
-
-
-        # pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
-        pred = {k: v[0].detach().numpy() for k, v in pred.items()}
+        pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
+        # pred = {k: v[0].detach().numpy for k, v in pred.items()}
 
 
         kpts_0, kpts_1 = pred['keypoints0'], pred['keypoints1']
@@ -140,8 +139,8 @@ def sift_features(img, flag_debug=False):
         cv2.namedWindow('kp', cv2.WINDOW_NORMAL)
         cv2.imshow('kp', img_kp)
         cv2.waitKey(wait_key)
-
-    return kp, des
+    pts = np.float32([kp.pt for kp in kp]).reshape(-1, 2)
+    return pts, des
 
 
 def get_sift_pts_and_sift_feats(img1, img2, shrink=-1.0, flag_debug=False):
@@ -178,13 +177,13 @@ def get_sift_pts_and_sift_feats(img1, img2, shrink=-1.0, flag_debug=False):
         img2_sub = cv2.resize(img2_sub, (int(img2.shape[1] / shrink2), int(img2.shape[0] / shrink2)))
 
     '''compute sift feature'''
-    kp1, des1 = sift_features(img1_sub, flag_debug)
-    kp2, des2 = sift_features(img2_sub, flag_debug)
+    pts_1, des1 = sift_features(img1_sub, flag_debug)
+    pts_2, des2 = sift_features(img2_sub, flag_debug)
 
-    print(len(kp1), len(kp2))
+    print(len(pts_1), len(pts_1))
 
-    pts_1 = np.float32([kp.pt for kp in kp1]).reshape(-1, 2) * shrink1
-    pts_2 = np.float32([kp.pt for kp in kp2]).reshape(-1, 2) * shrink2
+    pts_1 = pts_1 * shrink1
+    pts_2 = pts_2 * shrink2
 
     return pts_1, des1, pts_2, des2
 

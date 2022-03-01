@@ -1,5 +1,8 @@
+import os.path
+
 import numpy as np
 import time
+import xml.etree.ElementTree
 
 
 def pt_3d_format(pts_3d):
@@ -54,8 +57,46 @@ def test_timer():
     print(t)
 
 
-def main():
+def xml_2_pts(xml_file_path):
+    pts_xml = xml.etree.ElementTree.parse(xml_file_path)
+    root = pts_xml.getroot()
+    pts = []
+    for i in range(len(root)):
+        pt_dict = root[i].attrib
+        pts.append([float(pt_dict['x']), float(pt_dict['y'])])
+    return pts
+
+
+def pts_2_xml(pts, xml_file_path):
+    if isinstance(pts, np.ndarray):
+        pts = pts.tolist()
+    vector_xml = xml.etree.ElementTree.Element('vector')
+    for i in range(len(pts)):
+        pt = pts[i]
+        assert len(pt) == 2
+        pt_tag = 'point_'+str(i)
+        pt_xml = {'x': '{:.6f}'.format(pt[0]), 'y': '{:.6f}'.format(pt[1])}
+        xml.etree.ElementTree.SubElement(vector_xml, pt_tag, attrib=pt_xml)
+    xml_file = xml.etree.ElementTree.tostring(vector_xml)
+
+    if os.path.isfile(xml_file_path):
+        pass
+    else:
+        pass
+    with open(xml_file_path, 'wb') as f:
+        f.write(xml_file)
+    return True
+
+
+def test_xml_convertor():
+    xml_file_path = '/home/cheng/Downloads/Vectors.xml'
+    pts = xml_2_pts(xml_file_path)
+    pts_2_xml(pts, '/home/cheng/Downloads/Vectors_Cheng.xml')
     test_timer()
+
+
+def main():
+    test_xml_convertor()
 
 
 if __name__ == '__main__':

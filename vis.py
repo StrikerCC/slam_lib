@@ -21,11 +21,13 @@ def draw_lines(img, info, name):
 
 
 def draw_matches(img1, pts1, img2, pts2, horizontal=True, flag_count_match=False):
+    assert len(pts1) == len(pts2)
     if len(img1.shape) < 3:
         img1 = cv2.cvtColor(img1, cv2.COLOR_GRAY2BGR)
     if len(img2.shape) < 3:
         img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR)
-
+    if len(pts1) == 0:
+        return
     if pts1.shape[1] != 2:
         pts1 = pts1.reshape(-1, 2)
     if pts2.shape[1] != 2:
