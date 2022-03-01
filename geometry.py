@@ -164,9 +164,9 @@ def nearest_neighbor_points_2_points(pts1, pts2, distance_min=3):
         if dd < distance_min:
             id_pts1_2_pts2.append([i_query, id_query_pt_2_tree_pt])
     id_pts1_2_pts2 = np.asarray(id_pts1_2_pts2)
-    pts1_match = pts1[id_pts1_2_pts2[:, 0].tolist()]
-    pts2_match = pts2[id_pts1_2_pts2[:, 1].tolist()]
-    return pts1_match, pts2_match, id_pts1_2_pts2
+    # pts1_match = pts1[id_pts1_2_pts2[:, 0].tolist()]
+    # pts2_match = pts2[id_pts1_2_pts2[:, 1].tolist()]
+    return id_pts1_2_pts2
 
 
 # def match_filter_pts_pair(kp1, des1, kp2, des2):
