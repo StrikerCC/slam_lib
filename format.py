@@ -76,10 +76,10 @@ def xml_2_rois(xml_file_path):
 
 def rois_2_xml(rois, xml_file_path):
     print('writing to ', xml_file_path)
-    if rois is None or len(rois) == 0:
-        if os.path.isfile(xml_file_path):
-            os.remove(xml_file_path)
-        return True
+    # if rois is None or len(rois) == 0:
+    #     if os.path.isfile(xml_file_path):
+    #         os.remove(xml_file_path)
+    #     return True
     if isinstance(rois, np.ndarray):
         rois = rois.tolist()
     vectors_xml = xml.etree.ElementTree.Element('vectors')
@@ -121,10 +121,10 @@ def xml_2_pts(xml_file_path):
 
 
 def pts_2_xml(pts, xml_file_path):
-    if not pts or len(pts) == 0:
-        if os.path.isfile(xml_file_path):
-            os.remove(xml_file_path)
-        return True
+    # if not pts or len(pts) == 0:
+    #     if os.path.isfile(xml_file_path):
+    #         os.remove(xml_file_path)
+    #     return True
     if isinstance(pts, np.ndarray):
         pts = pts.tolist()
     vector_xml = xml.etree.ElementTree.Element('vector')
