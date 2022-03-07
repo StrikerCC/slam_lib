@@ -26,11 +26,12 @@ wait_key = 0
 
 
 class Matcher:
-    def __init__(self, cuda='0'):
+    def __init__(self, cuda='1'):
         self.timer = AverageTimer(newline=True)
 
         # Load the SuperPoint and SuperGlue models.
         self.device = 'cuda:'+str(cuda) if torch.cuda.is_available() else 'cpu'
+        # self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         torch.set_grad_enabled(False)
         config = {
             'superpoint': {
@@ -56,9 +57,9 @@ class Matcher:
         # self.resize = [1024, 750]
         # self.resize = [512, 375]
 
-        self.resize = [3088, 2064]
+        # self.resize = [3088, 2064]
         # self.resize = [1544, 1032]
-        # self.resize = [772, 516]
+        self.resize = [772, 516]
         # self.resize = [386, 258]
 
     def match(self, img_1, img_2, flag_vis=False):
@@ -202,6 +203,11 @@ def match_sift_feats(pts1, des1, pts2, des2, img1=None, img2=None, flag_output=F
     """
 
     '''filter with feature value ambiguity'''
+    if pts1 is None or len(pts1):
+        return None, None, None, None, None
+    if pts2 is None or len(pts2):
+        return None, None, None, None, None
+
     bf = cv2.BFMatcher_create()
     matches = bf.knnMatch(des1, des2, k=2)
     good_matches = [first for first, second in matches if first.distance < 0.65 * second.distance]
@@ -246,9 +252,9 @@ def get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, shrink=1.0, flag
     return pts1, des1, pts2, des2
 
 
-def get_pts_pair_by_sift(img1, img2, flag_debug=False):
-    pts1, des1, pts2, des2, good_matches = get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, flag_debug)
-    return pts1, pts2
+# def get_pts_pair_by_sift(img1, img2, flag_debug=False):
+#     pts1, des1, pts2, des2, good_matches = get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, flag_debug)
+#     return pts1, pts2
 
 
 def get_pts(img):

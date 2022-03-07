@@ -182,6 +182,10 @@ def epipolar_geometry_filter_matched_pts_pair(pts1, pts2, img1=None, img2=None, 
     :param flag_output:
     :return:
     """
+    if pts1 is None or len(pts1):
+        return None, None, None
+    if pts2 is None or len(pts2):
+        return None, None, None
     assert len(pts1) == len(pts2)
     len_input_pts = len(pts1)
 

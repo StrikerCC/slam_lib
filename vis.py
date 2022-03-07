@@ -9,6 +9,25 @@ import cv2
 import numpy as np
 
 
+def draw_pts(img, pts):
+    img_pts = np.copy(img)
+    if len(pts) == 0:
+        return img_pts
+
+    '''format pts'''
+    pts = np.asarray(pts)
+    if pts.shape[1] != 2:
+        pts = pts.reshape(-1, 2)
+    pts = pts.astype(int)
+
+    '''draw'''
+    for i in range(len(pts)):
+        pt1 = pts[i]
+        color = np.random.random(3) * 255
+        img_pts = cv2.circle(img_pts, pt1, radius=15, color=color, thickness=5)
+    return img_pts
+
+
 def draw_lines(img, info, name):
     # TODO:
     for hair_info in info:
@@ -53,13 +72,11 @@ def draw_matches(img1, pts1, img2, pts2, horizontal=True, flag_count_match=False
         pts1, pts2 = pts1.astype(int), pts2.astype(int)
         pts2[:, 1] = pts2[:, 1] + img1.shape[0]
 
-    img_synthesis = img_synthesis / 255
-
-
+    # img_synthesis = img_synthesis / 255
     img_synthesis_draw_match = np.copy(img_synthesis)
     for i in range(len(pts1)):
         pt1, pt2 = pts1[i], pts2[i]
-        color = np.random.random(3)
+        color = np.random.random(3) * 255
         # color = color.astype(int)
         img_synthesis_draw_match = cv2.circle(img_synthesis_draw_match, pt1, radius=15, color=color, thickness=5)
         img_synthesis_draw_match = cv2.circle(img_synthesis_draw_match, pt2, radius=15, color=color, thickness=5)
@@ -71,7 +88,7 @@ def draw_matches(img1, pts1, img2, pts2, horizontal=True, flag_count_match=False
         for i in range(len(pts1)):
             img_synthesis_draw_one_match = np.copy(img_synthesis)
             pt1, pt2 = pts1[i], pts2[i]
-            color = (0.0, 0.0, 1.0)
+            color = np.asarray((0.0, 0.0, 1.0)) * 255.0
             img_synthesis_draw_one_match = cv2.circle(img_synthesis_draw_one_match, pt1, radius=15, color=color, thickness=5)
             img_synthesis_draw_one_match = cv2.circle(img_synthesis_draw_one_match, pt2, radius=15, color=color, thickness=5)
             img_synthesis_draw_one_match = cv2.line(img_synthesis_draw_one_match, pt1, pt2, color=color, thickness=2)
