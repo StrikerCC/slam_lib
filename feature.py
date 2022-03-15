@@ -25,7 +25,7 @@ from slam_lib.models.utils import AverageTimer, read_image
 wait_key = 0
 
 
-class Matcher:
+class MatcherSuperGlue:
     def __init__(self, cuda='1'):
         self.timer = AverageTimer(newline=True)
 
@@ -103,8 +103,8 @@ class Matcher:
 
         if flag_vis:
             img3 = slam_lib.vis.draw_matches(img_left, pts_2d_0, img_right, pts_2d_1)
-            cv2.namedWindow('match', cv2.WINDOW_NORMAL)
-            cv2.imshow('match', img3)
+            cv2.namedWindow('hair_close_range_match', cv2.WINDOW_NORMAL)
+            cv2.imshow('hair_close_range_match', img3)
             cv2.waitKey(0)
 
         return pts_2d_0, feats_0, pts_2d_1, feats_1
@@ -149,7 +149,7 @@ def get_sift_pts_and_sift_feats(img1, img2, shrink=-1.0, flag_debug=False):
 
     :param img1:
     :param img2:
-    :param shrink: -1.0: shrink bigger img to match smaller img size. 0: no shrink, >0, shrink both by what ratio shrink given
+    :param shrink: -1.0: shrink bigger img to hair_close_range_match smaller img size. 0: no shrink, >0, shrink both by what ratio shrink given
     :param flag_debug:
     :return:
     """
@@ -226,8 +226,8 @@ def match_sift_feats(pts1, des1, pts2, des2, img1=None, img2=None, flag_output=F
     if img1 is not None and img2 is not None:
         print('Get ', len(pts1), ' good matches')
         img3 = vis.draw_matches(img1, pts1, img2, pts2)
-        cv2.namedWindow('match', cv2.WINDOW_NORMAL)
-        cv2.imshow('match', img3)
+        cv2.namedWindow('hair_close_range_match', cv2.WINDOW_NORMAL)
+        cv2.imshow('hair_close_range_match', img3)
         cv2.waitKey(wait_key)
 
     return pts1, des1, pts2, des2, index_match
@@ -245,8 +245,8 @@ def get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, shrink=1.0, flag
     if flag_debug:
         print('Get ', len(pts1), ' good matches')
         img3 = vis.draw_matches(img1, pts1, img2, pts2)
-        cv2.namedWindow('match', cv2.WINDOW_NORMAL)
-        cv2.imshow('match', img3)
+        cv2.namedWindow('hair_close_range_match', cv2.WINDOW_NORMAL)
+        cv2.imshow('hair_close_range_match', img3)
         cv2.waitKey(wait_key)
 
     return pts1, des1, pts2, des2

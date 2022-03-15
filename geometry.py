@@ -148,25 +148,38 @@ def closet_vector_2_point(lines, pts):
     return lengths * lines
 
 
-def nearest_neighbor_points_2_points(pts1, pts2, distance_min=3):
+def nearest_neighbor_points_2_points(pts0, pts1, distance_min=3):
     """
 
+    :param pts0:
     :param pts1:
-    :param pts2:
     :return:
     """
-    query = pts1
-    tree = scipy.spatial.kdtree.KDTree(pts2)
+    query = pts0
+    tree = scipy.spatial.kdtree.KDTree(pts1)
+    id_picked_tree_2_dd = dict()
+
     id_pts1_2_pts2 = []
 
     for i_query, pt in enumerate(query):
-        dd, id_query_pt_2_tree_pt = tree.query(pt)
-        if dd < distance_min:
-            id_pts1_2_pts2.append([i_query, id_query_pt_2_tree_pt])
-    id_pts1_2_pts2 = np.asarray(id_pts1_2_pts2)
-    # pts1_match = pts1[id_pts1_2_pts2[:, 0].tolist()]
-    # pts2_match = pts2[id_pts1_2_pts2[:, 1].tolist()]
-    return id_pts1_2_pts2
+        dd, id_tree_node = tree.query(pt)
+
+        if dd > distance_min:               # max distance check
+            continue
+
+        if id_picked_tree_2_dd.get(id_tree_node) is not None:    # pick single match
+            if dd > id_picked_tree_2_dd.get(id_tree_node)['dis']:
+                continue
+            else:   # get rid of old one
+                id_pts1_2_pts2[id_picked_tree_2_dd.get(id_tree_node)['id']] = [-1, -1]
+
+        id_picked_tree_2_dd[id_tree_node] = {'id': len(id_pts1_2_pts2), 'dis': dd}
+        id_pts1_2_pts2.append([i_query, id_tree_node])
+    if len(id_pts1_2_pts2) == 0:
+        return []
+    else:
+        id_pts1_2_pts2 = np.asarray(id_pts1_2_pts2).astype(int)
+        return id_pts1_2_pts2[id_pts1_2_pts2[:, 0] > 0]
 
 
 # def match_filter_pts_pair(kp1, des1, kp2, des2):
@@ -208,8 +221,8 @@ def epipolar_geometry_filter_matched_pts_pair(pts1, pts2, img1=None, img2=None, 
                   axis=1)))
     if img1 is not None and img2 is not None:
         img3 = vis.draw_matches(img1, pts1, img2, pts2)
-        cv2.namedWindow('match', cv2.WINDOW_NORMAL)
-        cv2.imshow('match', img3)
+        cv2.namedWindow('hair_close_range_match', cv2.WINDOW_NORMAL)
+        cv2.imshow('hair_close_range_match', img3)
         cv2.waitKey(0)
     return pts1, pts2, mask_
 

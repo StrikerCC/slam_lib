@@ -5,11 +5,19 @@ import time
 
 
 def pt_3d_format(pts_3d):
-    pass
+    if pts_3d is None or len(pts_3d) == 0:
+        return None
+    pts_3d = np.asarray(pts_3d)
+    pts_3d = pts_3d.reshape((-1, 2))
+    return pts_3d
 
 
 def pts_2d_format(pts_2d):
-    pass
+    if pts_2d is None or len(pts_2d) == 0:
+        return None
+    pts_2d = np.asarray(pts_2d)
+    pts_2d = pts_2d.reshape((-1, 2))
+    return pts_2d
 
 
 def pts_2d_2_3d_homo(pts_2d):

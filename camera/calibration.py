@@ -81,7 +81,7 @@ def stereo_calibrate(square_size, checkboard_size, left_img_paths, right_img_pat
                                  camera_matrix_right, dist_right, imageSize=img_size)
     ret_stereo, camera_matrix_left, dist_left, camera_matrix_right, dist_right, rvec_stereo, tvec_stereo, essential, fundamental = result
 
-    '''build calibration result dict'''
+    '''build calibration results dict'''
     stereo_calibration_result = {
         'img_size': img_size,
         'camera_matrix_left': camera_matrix_left.tolist(),
@@ -96,12 +96,12 @@ def stereo_calibrate(square_size, checkboard_size, left_img_paths, right_img_pat
         'stereo_camera_re-projection_error': ret_stereo,
     }
 
-    # result = cv2.stereoRectify(cameraMatrix1=camera_matrix_left, distCoeffs1=dist_left,
+    # results = cv2.stereoRectify(cameraMatrix1=camera_matrix_left, distCoeffs1=dist_left,
     #                            cameraMatrix2=camera_matrix_right,
     #                            distCoeffs2=dist_right, imageSize=img_size, R=cv2.Rodrigues(rvec_stereo)[0],
     #                            T=tvec_stereo)
     # rectify_rotation_left, rectify_rotation_right, rectified_camera_matrix_left, \
-    # rectified_camera_matrix_right, Q, roi_left, roi_right = result
+    # rectified_camera_matrix_right, Q, roi_left, roi_right = results
 
     # map_undistort_left, map_rectify_left = cv2.initUndistortRectifyMap(cameraMatrix=camera_matrix_left,
     #                                                                     distCoeffs=dist_left,
@@ -124,7 +124,7 @@ def stereo_calibrate(square_size, checkboard_size, left_img_paths, right_img_pat
     if binocular is not None:
         binocular.set_params(stereo_calibration_result)
 
-    '''save result'''
+    '''save results'''
     if file_path_2_save is not None:
         if not file_path_2_save[-4:] == 'json':
             print(file_path_2_save, 'is not a valid json file path')
@@ -133,7 +133,7 @@ def stereo_calibrate(square_size, checkboard_size, left_img_paths, right_img_pat
             f = open(file_path_2_save, 'w')
             json.dump(stereo_calibration_result, f)
             f.close()
-            print('Calibration result saved to', file_path_2_save)
+            print('Calibration results saved to', file_path_2_save)
 
     return True
 
@@ -148,7 +148,7 @@ def main():
     stereo_calibrate(square_size, checkboard_size, img_left_paths, img_right_paths, binocular=binocular,
                      file_path_2_save='../config/bicam_cal_para.json')
 
-    print('calibration result')
+    print('calibration results')
     print(binocular.cam_left.camera_matrix)
     print(binocular.cam_right.camera_matrix)
 

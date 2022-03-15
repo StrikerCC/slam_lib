@@ -96,7 +96,7 @@ class Matching(torch.nn.Module):
 
         pred = {**pred, **self.superglue(data)}
         time_match = time.time() - time_start
-        print('superglue match feature in', time_match)
+        print('superglue hair_close_range_match feature in', time_match)
         print(time_feat + time_match)
 
         return pred
